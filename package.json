@@ -1,0 +1,33 @@
+{
+  "name": "totto16.aoc-2016.ts",
+  "version": "1.0.0",
+  "description": "The Advent of Code 2016 solved entirely in Node.JS (Typscript)",
+  "main": "./build/all.js",
+  "scripts": {
+    "test":"npm run prettier && node . --all -s",
+    "prettier": "npx prettier --write .",
+    "all":"node . --all -s -t",
+    "start":"node .",
+    "help":"node . --help",
+    "pretty":"node . -m -s --0",
+    "compile":"tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Totto16/AOC-2016.git"
+  },
+  "keywords": [
+    "AOC",
+    "js"
+  ],
+  "author": "Totto",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Totto16/AOC-2016/issues"
+  },
+  "homepage": "https://github.com/Totto16/AOC-2016#readme",
+  "dependencies": {
+    "prettier": "^2.5.0",
+    "terminal-kit": "^2.2.3"
+  }
+}
