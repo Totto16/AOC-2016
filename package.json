@@ -1,16 +1,19 @@
 {
   "name": "totto16.aoc-2016.ts",
   "version": "1.0.0",
-  "description": "The Advent of Code 2016 solved entirely in Node.JS (Typscript)",
+  "description": "The Advent of Code 2016 solved entirely in Node.JS (Typescript)",
   "main": "./build/all.js",
   "scripts": {
-    "test":"npm run prettier && node . --all -s",
+    "test": "npm run prettier && node . --all -s",
     "prettier": "npx prettier --write .",
-    "all":"node . --all -s -t",
-    "start":"node .",
-    "help":"node . --help",
-    "pretty":"node . -m -s --0",
-    "compile":"tsc"
+    "all": "node . --all -s -t",
+    "start": "node .",
+    "help": "node . --help",
+    "pretty": "node . -m -s --0",
+    "compile": "tsc",
+    "lint:quiet": "eslint 'src/**/*.ts' --cache --quiet --color --fix",
+    "lint": "eslint 'src/**/*.ts' --cache --color --fix",
+    "lint:debug": "eslint 'src/**/*.ts' --debug --color --fix"
   },
   "repository": {
     "type": "git",
@@ -28,6 +31,20 @@
   "homepage": "https://github.com/Totto16/AOC-2016#readme",
   "dependencies": {
     "prettier": "^2.5.0",
-    "terminal-kit": "^2.2.3"
+    "terminal-kit": "^2.2.3",
+    "typescript": "^4.9.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm":">=8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "@types/terminal-kit": "^2.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.43.0",
+    "eslint": "^8.27.0",
+    "eslint-plugin-boumain();exp": "^1.10.0",
+    "eslint-plugin-security": "^1.5.0",
+    "eslint-plugin-this": "^0.2.3"
   }
 }

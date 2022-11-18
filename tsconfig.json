@@ -13,7 +13,6 @@
       "resolveJsonModule": true,
       "strictNullChecks" : true,
       "strictFunctionTypes" :true,
-      "incremental": true,
       "noEmitOnError":true
     },
     "rules": {
