@@ -21,7 +21,8 @@
   },
   "keywords": [
     "AOC",
-    "js"
+    "js",
+    "ts"
   ],
   "author": "Totto",
   "license": "ISC",

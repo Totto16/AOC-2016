@@ -271,7 +271,7 @@ function sendIpc(options: IPCOptions | string) {
 
 export interface StartOptions {
     needsPrototypes?: boolean;
-    slowness?: boolean;
+    slowness?: WarningType;
     mute?: boolean;
     inputOptions?: {
         separator: string;
@@ -283,8 +283,8 @@ export type SolveReturnType = number | string;
 
 export interface StartMethods {
     tests?: (mute: boolean) => void;
-    solve?: (input: string[]) => SolveReturnType;
-    solve2?: (input: string[]) => SolveReturnType;
+    solve?: (input: string[], mute?: boolean) => SolveReturnType;
+    solve2?: (input: string[], mute?: boolean) => SolveReturnType;
     solveMessage?: string;
     solve2Message?: string;
 }
@@ -307,7 +307,7 @@ export function start(filename: string | undefined, methods: StartMethods, optio
         process.exit(43);
     }
     if (options.slowness !== undefined) {
-        slowWarning(options.slowness ? 1 : 0);
+        slowWarning(options.slowness);
     }
     filename = filename ?? __filename;
     const { separator, filterOutEmptyLines } = options.inputOptions || { separator: '\n', filterOutEmptyLines: true };
