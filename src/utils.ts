@@ -3,7 +3,7 @@ import fs from 'fs';
 import { parseArgs, ProgramOptions } from './all';
 const debug = ['1', 'true', 'on', 'enabled', 'enable'].includes(process.env['DEBUG'] ?? '0');
 
-export function logDebug(...args: unknown[]) {
+export function logDebug(...args: unknown[]): boolean {
     if (debug) {
         console.log(`[DEBUG] `, ...args);
         return true;
