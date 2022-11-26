@@ -249,7 +249,7 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(Array.prototype, 'add', {
-        value(this: number[], arg: number | number[]): number[] {
+        value(this: number[], arg: number | number[], constraintFunction: (nr: number) => number = (a) => a): number[] {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: number[] = this;
             if (!Array.isArray(arg)) {
@@ -257,10 +257,19 @@ export function initPrototypes(): void {
             } else {
                 const res: number[] = [];
                 for (let i = 0; i < Math.max(first.length, arg.length); ++i) {
-                    res.push((first.at(i) ?? 0) + (arg.at(i) ?? 0));
+                    res.push(constraintFunction((first.at(i) ?? 0) + (arg.at(i) ?? 0)));
                 }
                 return res;
             }
+        },
+    });
+
+    Object.defineProperty(Number.prototype, 'clamp', {
+        value(this: number, min: number, max: number, endInclusive = false): number {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: number = this;
+            const result = Math.max(Math.min(endInclusive ? max : max - 1, first), min);
+            return result;
         },
     });
 }

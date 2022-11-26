@@ -19,11 +19,18 @@ declare global {
         atSafe(index: number): T;
         indexOfNested<U = T>(this: Array<Array<U>>, element: Array<U>): number;
         times(this: Array<number>, factor: number): Array<number>;
-        add(this: Array<number>, number: number): Array<number>;
-        add(this: Array<number>, number: Array<number>): Array<number>;
+        add(
+            this: Array<number>,
+            number: number | Array<number>,
+            constraintFunction?: (nr: number) => number
+        ): Array<number>;
     }
 
     interface Object {
         isArray(): boolean;
+    }
+
+    interface Number {
+        clamp(this: Number, min: Number, max: Number, endInclusive?: boolean): Number;
     }
 }
