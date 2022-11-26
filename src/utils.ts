@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
-const debug = (process.env['DEBUG'] ?? '1') === '1';
+import { parseArgs, ProgramOptions } from './all';
+const debug = ['1', 'true', 'on', 'enabled', 'enable'].includes(process.env['DEBUG'] ?? '0');
 
 function logDebug(...args: unknown[]) {
     if (debug) {
@@ -10,9 +11,22 @@ function logDebug(...args: unknown[]) {
     return false;
 }
 
-function getFile(filePath: string, filename: string | undefined, separator = '\n', filterOutEmptyLines = true) {
+export function getFile(
+    filePath: string,
+    filename: string | undefined,
+    separator = '\n',
+    filterOutEmptyLines = true
+): string[] {
     const dirname = path.dirname(filename ?? __filename);
-    const file = path.join(dirname, filePath);
+    let file: string = path.join(dirname, filePath);
+    if (__dirname.endsWith('/build')) {
+        file = file.replace('/build/', '/src/');
+    }
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
+    if (!fs.existsSync(file)) {
+        throw new Error(`No such file: '${file}'`);
+    }
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     let result = fs
         .readFileSync(file)
         .toString()
@@ -28,10 +42,12 @@ export type PrintNestedMapFunction<T = unknown> = (a: T) => string;
 
 export type CountFunction<T = unknown> = (a: T) => number;
 
-function initPrototypes() {
+export type PossibleFillTypes = [number, '..', number] | ['..', number] | [number, '..'];
+
+export function initPrototypes(): void {
     //some useful Functions, copy from Day 09 and further along to have all useful functions on Arrays
     Object.defineProperty(Array.prototype, 'equals', {
-        value(this: unknown[], second: unknown[], amount = -1) {
+        value<T = unknown>(this: T[], second: T[], amount = -1) {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first = this;
             if (!Array.isArray(first) || !Array.isArray(second)) {
@@ -43,56 +59,56 @@ function initPrototypes() {
                     return false;
                 }
                 for (let i = 0; i < amount; i++) {
-                    if (first[i] !== second[i]) {
+                    if (first.at(i) !== second.at(i)) {
                         return false;
                     }
                 }
                 return true;
             }
-            return first.length === second.length && first.every((a, index) => a === second[index]);
+            return first.length === second.length && first.every((a, index) => a === second.at(index));
         },
     });
 
     Object.defineProperty(Array.prototype, 'includesArray', {
-        value(this: unknown[][], singleArray: unknown[]): boolean {
+        value<T = unknown>(this: T[][], singleArray: T[]): boolean {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const BigArray = this;
-            return BigArray.reduce<boolean>((acc: boolean, cnt: unknown[]): boolean => {
+            return BigArray.reduce<boolean>((acc: boolean, cnt: T[]): boolean => {
                 return cnt.equals(singleArray) || acc;
             }, false);
         },
     });
 
     Object.defineProperty(Array.prototype, 'printNested', {
-        value(
-            this: unknown[],
-            mapFunction: PrintNestedMapFunction = (a: unknown): string => (a === 0 ? '.' : a.toString()),
-            seperator = ' ',
+        value<T = unknown>(
+            this: T[][] | T[],
+            mapFunction: PrintNestedMapFunction<T> = (a: T): string => (a === 0 ? '.' : (a as string).toString()),
+            separator = ' ',
             EOL = '\n'
         ) {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const array = this;
-            let error = false;
-            const toLog = array
-                .map((a) => {
-                    if (!Array.isArray(a)) {
-                        error = true;
-                    }
-                    return a.map((b: any) => mapFunction(b)).join(seperator);
-                })
-                .join(EOL);
-            if (error) {
+            try {
+                const toLog = array
+                    .map((a: T | T[]): string => {
+                        if (!Array.isArray(a)) {
+                            throw new Error();
+                        }
+                        return a.map((b: T) => mapFunction(b)).join(separator);
+                    })
+                    .join(EOL);
+                console.log(toLog);
+                return true;
+            } catch (e) {
                 return false;
             }
-            console.log(toLog);
-            return true;
         },
     });
 
     Object.defineProperty(Array.prototype, 'copy', {
-        value(this: unknown[]): Array<unknown> {
+        value<T = unknown>(this: T[]): Array<T> {
             // eslint-disable-next-line this/no-this
-            return JSON.parse(JSON.stringify(this)) as Array<unknown>;
+            return JSON.parse(JSON.stringify(this)) as Array<T>;
         },
     });
 
@@ -102,35 +118,47 @@ function initPrototypes() {
         },
     });
 
+    Object.defineProperty(Object.prototype, 'isArray', {
+        value() {
+            return false;
+        },
+    });
+
+    Object.defineProperty(Number.prototype, 'isArray', {
+        value() {
+            return false;
+        },
+    });
+
     Object.defineProperty(Array.prototype, 'count', {
-        value(this: unknown[], countFunction = (a) => a, start = 0) {
+        value<T = unknown>(this: T[], countFunction: CountFunction<T> = (a: T): number => a as number, startValue = 0) {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
-            const array = this;
-            const reduceFunction = (acc, el) => {
+            const array: T[] = this;
+            const reduceFunction: (acc: number, el: T) => number = (acc: number, el: T): number => {
                 if (!Array.isArray(el)) {
                     return acc + countFunction(el);
                 }
-                return acc + el.reduce(reduceFunction, start);
+                return acc + (el as T[]).reduce(reduceFunction, startValue);
             };
 
-            const result = array.reduce(reduceFunction, start);
+            const result: number = array.reduce(reduceFunction, startValue);
             return result;
         },
     });
 
     Object.defineProperty(Array.prototype, 'combine', {
-        value(this: unknown[], second: unknown[], flat = true) {
+        value<T = unknown>(this: Array<T>, second: Array<T>, flat = true) {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
-            const first = this;
+            const first: Array<T> = this;
             if (!Array.isArray(first) || !Array.isArray(second)) {
                 return [];
             }
             const result = [];
             for (let i = 0; i < first.length; i++) {
                 for (let j = 0; j < second.length; j++) {
-                    let p = [first[i], second[j]];
-                    if (flat && (Array.isArray(first[i]) || Array.isArray(second[j]))) {
-                        p = p.flat();
+                    let p: T[] = [first.atSafe(i), second.atSafe(j)];
+                    if (flat && (Array.isArray(first.at(i)) || Array.isArray(second.at(j)))) {
+                        p = p.flat() as T[];
                     }
                     result.push(p);
                 }
@@ -140,23 +168,27 @@ function initPrototypes() {
     });
 
     Object.defineProperty(Array.prototype, 'fillElements', {
-        value(this: unknown[], start = 0, end = 1000) {
+        value<T = unknown>(this: PossibleFillTypes | T, startValue = 0, end = 1000): number[] {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
-            const first = this;
+            const first: PossibleFillTypes | T = this;
             if (!Array.isArray(first)) {
                 return [];
             }
+
             if (first.length > 3) {
-                return first;
+                return [];
             }
+
             const newArray = [];
             for (let i = 0; i < first.length; i++) {
-                if (first[i] === '..') {
-                    const startNumber = i > 0 ? first[i - 1] : start;
-                    const endNumber = i < first.length - 1 ? first[i + 1] : end;
+                if (first.at(i) === '..') {
+                    const startNumber: number = i > 0 && first[i - 1] !== '..' ? (first[i - 1] as number) : startValue;
+                    const endNumber: number =
+                        i < first.length - 1 && first[i + 1] !== '..' ? (first[i + 1] as number) : end;
                     const diff = endNumber >= startNumber ? 1 : -1;
-                    const compareFunction = endNumber >= startNumber ? (a, b) => a <= b : (a, b) => a >= b;
-                    for (let j = startNumber; compareFunction(j, endNumber); j += diff) {
+                    const compareFunction =
+                        endNumber >= startNumber ? (a: number, b: number) => a <= b : (a: number, b: number) => a >= b;
+                    for (let j: number = startNumber; compareFunction(j, endNumber); j += diff) {
                         newArray.push(j);
                     }
                 }
@@ -166,7 +198,7 @@ function initPrototypes() {
     });
 
     Object.defineProperty(Array.prototype, 'print', {
-        value(this: unknown[]) {
+        value<T = unknown>(this: T[]) {
             try {
                 // eslint-disable-next-line this/no-this
                 const toPrint = JSON.stringify(this);
@@ -175,6 +207,21 @@ function initPrototypes() {
                 return false;
             }
             return;
+        },
+    });
+
+    Object.defineProperty(Array.prototype, 'atSafe', {
+        value<T = unknown>(this: T[], index: number): T {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: Array<T> = this;
+            if (index < 0 || index >= first.length) {
+                throw new Error(`Array.atSafe: Index out of range: 0 < ${index} >= ${first.length}`);
+            }
+            const result = first.at(index);
+            if (result === undefined) {
+                throw new Error(`Array.atSafe: Fatal error, Array.at() returned undefined`);
+            }
+            return result;
         },
     });
 }
@@ -192,14 +239,23 @@ function slowWarning(type: WarningType) {
     return sendIpc({ type: 'slow', message, level });
 }
 
-export type IPCTypes = 'slow';
+export type IPCTypes = keyof IPCTypesMap;
+
+export interface IPCTypesMap {
+    slow: {
+        message: string;
+        level: IPCLevel;
+    };
+    message: { message: string };
+    time: {
+        what: string;
+    };
+}
 
 export type IPCLevel = 'moderate' | 'severe' | 'unknown';
-export interface IPCOptions {
-    type: IPCTypes;
-    message: string;
-    level: IPCLevel;
-}
+export type IPCOptions<T extends IPCTypes = IPCTypes> = {
+    type: T;
+} & IPCTypesMap[T];
 
 function sendIpc(options: IPCOptions | string) {
     if (process.send) {
@@ -213,16 +269,36 @@ function sendIpc(options: IPCOptions | string) {
     return false;
 }
 
-function start(filename, methods, options) {
+export interface StartOptions {
+    needsPrototypes?: boolean;
+    slowness?: boolean;
+    mute?: boolean;
+    inputOptions?: {
+        separator: string;
+        filterOutEmptyLines: boolean;
+    };
+}
+
+export type SolveReturnType = number | string;
+
+export interface StartMethods {
+    tests?: (mute: boolean) => void;
+    solve?: (input: string[]) => SolveReturnType;
+    solve2?: (input: string[]) => SolveReturnType;
+    solveMessage?: string;
+    solve2Message?: string;
+}
+
+export function start(filename: string | undefined, methods: StartMethods, options?: StartOptions): never {
     options = options || {};
     sendIpc({ type: 'time', what: 'start' });
-    const args = parseArgs();
+    const args: ProgramOptions = parseArgs();
     logDebug(`parsed argv: `, args, 'real argv:', process.argv);
-    if (options.needsPrototypes) {
+    if (options.needsPrototypes === true) {
         initPrototypes();
     }
 
-    if (methods.tests && !args.no_tests) {
+    if (methods.tests && !args.noTests) {
         methods.tests(args.mute);
         sendIpc({ type: 'time', what: 'tests' });
     }
@@ -231,31 +307,29 @@ function start(filename, methods, options) {
         process.exit(43);
     }
     if (options.slowness !== undefined) {
-        slowWarning(options.slowness);
+        slowWarning(options.slowness ? 1 : 0);
     }
     filename = filename ?? __filename;
-    const { seperator, filterOutEmptyLines } = options.inputOptions || { seperator: '\n', filterOutEmptyLines: true };
-    if (methods.solve) {
-        const realInput = getFile('./input.txt', filename, seperator, filterOutEmptyLines);
+    const { separator, filterOutEmptyLines } = options.inputOptions || { separator: '\n', filterOutEmptyLines: true };
+    if (methods.solve !== undefined) {
+        const realInput = getFile('./input.txt', filename, separator, filterOutEmptyLines);
         const Answer = methods.solve(realInput);
         sendIpc({ type: 'message', message: `Part 1: '${Answer}'\n` });
         sendIpc({ type: 'time', what: 'part1' });
-    } else if (methods.solveMessage) {
+    } else if (methods.solveMessage !== undefined) {
         sendIpc({ type: 'message', message: `Part 1: '${methods.solveMessage}\n'` });
         sendIpc({ type: 'time', what: 'part1' });
     }
 
-    if (methods.solve2) {
-        const realInput2 = getFile('./input.txt', filename, seperator, filterOutEmptyLines);
+    if (methods.solve2 !== undefined) {
+        const realInput2 = getFile('./input.txt', filename, separator, filterOutEmptyLines);
         const Answer2 = methods.solve2(realInput2);
         sendIpc({ type: 'message', message: `Part 2: '${Answer2}'\n` });
         sendIpc({ type: 'time', what: 'part2' });
-    } else if (methods.solve2Message) {
+    } else if (methods.solve2Message !== undefined) {
         sendIpc({ type: 'message', message: `Part 2: '${methods.solve2Message}'\n` });
         sendIpc({ type: 'time', what: 'part2' });
     }
 
     process.exit(0);
 }
-
-module.exports = { start, getFile };

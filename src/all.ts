@@ -3,6 +3,7 @@ import path from 'path';
 import { terminal as term } from 'terminal-kit';
 import { spawn } from 'child_process';
 import { performance } from 'perf_hooks';
+import { initPrototypes } from './utils';
 
 function* walkSync(
     dir: string,
@@ -10,6 +11,7 @@ function* walkSync(
     FolderMatch: RegExp | undefined,
     fileMatch: RegExp | undefined
 ): Generator<string> {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const files = fs.readdirSync(dir, { withFileTypes: true });
     for (const file of files) {
         if (file.isDirectory()) {
@@ -23,17 +25,41 @@ function* walkSync(
         }
     }
 }
-
 export type ProgramOptions = {
-    index: number | 'select';
     skipSlow: boolean;
     noTests: boolean;
     mute: boolean;
     debug: boolean;
 };
 
-export function parseArgs() {
-    const options: ProgramOptions = { index: 'select', skipSlow: false, noTests: false, mute: false, debug: false };
+export type ExtendedProgramOptions = {
+    index: number | 'select';
+} & ProgramOptions;
+
+export type ArgumentProgramOptions = 'autoskipslow' | 'no-tests' | 'mute' | 'debug' | 'verbose';
+
+export type ProgramOptionsMapType = {
+    [key in ArgumentProgramOptions]: keyof ProgramOptions;
+};
+
+export type ObjectEntries<T> = [keyof T, T[keyof T]][];
+
+export const ProgramOptionsMap: ProgramOptionsMapType = {
+    autoskipslow: 'skipSlow',
+    'no-tests': 'noTests',
+    mute: 'mute',
+    debug: 'debug',
+    verbose: 'debug',
+};
+
+export function parseArgs(): ExtendedProgramOptions {
+    const options: ExtendedProgramOptions = {
+        index: 'select',
+        skipSlow: false,
+        noTests: false,
+        mute: false,
+        debug: false,
+    };
     for (const string of process.argv) {
         if (string.startsWith('-')) {
             const arg = string.replace('-', '');
@@ -112,7 +138,7 @@ export interface DaysObject {
 
 async function main() {
     UserCancel();
-    const options = parseArgs();
+    const options: ExtendedProgramOptions = parseArgs();
     if (options.debug) {
         !options.mute && term.white('[DEBUG] argv: ', JSON.stringify(options), '\n');
     }
@@ -160,15 +186,29 @@ export type ProgramTypesParams = {
     };
 };
 
-export type AvailableProgramOptions<T extends ProgramTypes = ProgramTypes> = {
+export type AvailableProgramOptions<T extends ProgramTypes = ProgramTypes> =
+    | NormalProgramOptions<T>
+    | ParsableProgramOptions<T>;
+
+export type NormalProgramOptions<T extends ProgramTypes = ProgramTypes> = {
     type: T;
-    args: string[];
+    args: [`--${string}`, ...string[]];
     description: string;
-    representation?: keyof ProgramOptions;
+} & ProgramTypesParams[T];
+
+export type ParsableProgramOptions<T extends ProgramTypes = ProgramTypes> = {
+    type: T;
+    args: [
+        `--${ArgumentProgramOptions}`,
+        `-${ArgumentProgramOptions[0]}`,
+        ...(unknown[] | [`--${ArgumentProgramOptions}` | `-${ArgumentProgramOptions[0]}`])
+    ];
+    description: string;
+    representation: keyof ProgramOptions;
 } & ProgramTypesParams[T];
 
 function getAvailableArgs(): AvailableProgramOptions[] {
-    const AvailableArgs: AvailableProgramOptions[] = [
+    const NormalOpts: NormalProgramOptions[] = [
         {
             type: 'normal',
             args: ['--all'],
@@ -184,6 +224,15 @@ function getAvailableArgs(): AvailableProgramOptions[] {
             args: ['--help', '-h', '-?'],
             description: 'Shows this help page',
         },
+        {
+            type: 'which',
+            args: ['--{number}'],
+            params: ['{number} is a valid Number from Day 1 - actual Day, maximum 25'],
+            description: 'Runs the Solution for that day',
+        },
+    ];
+
+    const ParsableOpts: ParsableProgramOptions[] = [
         {
             type: 'internal',
             args: ['--no-tests', '-t'],
@@ -204,23 +253,19 @@ function getAvailableArgs(): AvailableProgramOptions[] {
         },
         {
             type: 'internal',
-            args: ['--verbose', '-v', '--debug', '-d'],
+            args: ['--debug', '-d', '--verbose', '-v'],
             representation: 'debug',
             description:
                 "Print additional Information, at the moment only additional timing and argv logging is available. for additional debugging set debug in 'utils.js' to 'true'",
         },
-        {
-            type: 'which',
-            args: ['--{number}'],
-            params: ['{number} is a valid Number from Day 1 - actual Day, maximum 25'],
-            description: 'Runs the Solution for that day',
-        },
     ];
+
+    const AvailableArgs: AvailableProgramOptions[] = [...NormalOpts, ...ParsableOpts];
 
     return AvailableArgs;
 }
 
-function printHelp() {
+function printHelp(): never {
     const AvailableArgs = getAvailableArgs();
 
     term.blue('HELP Page:\n\n');
@@ -245,7 +290,7 @@ function printOutChristmasTree() {
         const available = 'bcmyrgw'.split('');
         do {
             const i = Math.floor(Math.random() * available.length);
-            yield `^${available[i]}`;
+            yield `^${available.atSafe(i)}`;
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         } while (true);
     }
@@ -292,24 +337,28 @@ function printOutChristmasTree() {
     process.exit(0);
 }
 
-async function runThat(options: ProgramOptions, AllNumbers: DaysObject[]) {
+async function runThat(options: ExtendedProgramOptions, AllNumbers: DaysObject[]) {
     if (options.index === 0) {
         term.blue(`Now running ALL Available Solutions:\n`);
         for (let i = 0; i < AllNumbers.length; i++) {
-            const selected = AllNumbers[i];
+            const selected: DaysObject = AllNumbers.atSafe(i);
             term.green(`Now running Solution for Day ${selected.number.toString().padStart(2, '0')}:\n`);
             const { code, output, timing } = await runProcess(selected.filePath, options);
             let timeString: string;
             if (options.debug) {
                 timeString = 'Timings:\n';
-                const sortedTimings = Object.entries(timing).sort((a, b) => a[1] - b[1]);
-                sortedTimings.forEach(([name, time], index) => {
+                const sortedTimings: ObjectEntries<TimingObject> = Object.entries(timing).sort(
+                    (a, b) => a[1] - b[1]
+                ) as ObjectEntries<TimingObject>;
+
+                for (let index = 0; index < sortedTimings.length; ++index) {
+                    const [name, time] = sortedTimings.atSafe(index);
                     if (name !== 'start') {
                         timeString += `^g${name}: ${formatTime(time - sortedTimings[index - 1][1])}${
                             index < sortedTimings.length - 1 ? '\n' : '\n'
                         }`;
                     }
-                });
+                }
                 timeString += `^gall: ${formatTime(timing.end - timing.start)}`;
             } else {
                 timeString = `It took ${formatTime(timing.end - timing.start)}`;
@@ -351,14 +400,19 @@ async function runThat(options: ProgramOptions, AllNumbers: DaysObject[]) {
         let timeString: string;
         if (options.debug) {
             timeString = 'Timings:\n';
-            const sortedTimings = Object.entries(timing).sort((a, b) => a[1] - b[1]);
-            sortedTimings.forEach(([name, time], index) => {
+            const sortedTimings: ObjectEntries<TimingObject> = Object.entries(timing).sort(
+                (a, b) => a[1] - b[1]
+            ) as ObjectEntries<TimingObject>;
+
+            for (let index = 0; index < sortedTimings.length; ++index) {
+                const [name, time] = sortedTimings.atSafe(index);
                 if (name !== 'start') {
                     timeString += `^g${name}: ${formatTime(time - sortedTimings[index - 1][1])}${
                         index < sortedTimings.length - 1 ? '\n' : '\n'
                     }`;
                 }
-            });
+            }
+
             timeString += `^gall: ${formatTime(timing.end - timing.start)}`;
         } else {
             timeString = `It took ${formatTime(timing.end - timing.start)}`;
@@ -410,10 +464,15 @@ export type ProgramStringOptions = (keyof ProgramOptions)[];
 
 function toArgs(options: ProgramOptions): ProgramStringOptions {
     const AvailableOptions: AvailableProgramOptions[] = getAvailableArgs().filter((arg) => arg.type === 'internal');
-    const result = [];
+    const result: ProgramStringOptions = [];
     for (let i = 0; i < AvailableOptions.length; i++) {
-        if (options[AvailableOptions[i].representation]) {
-            result.push(AvailableOptions[i].args[0]);
+        const currentOption = AvailableOptions.atSafe(i);
+        const rep: keyof ProgramOptions | undefined = (
+            currentOption as ParsableProgramOptions | { representation: undefined }
+        ).representation;
+        // eslint-disable-next-line security/detect-object-injection
+        if (rep !== undefined && options[rep]) {
+            result.push(currentOption.args[0] as keyof ProgramOptions);
         }
     }
     return result;
@@ -449,12 +508,12 @@ export interface TimingObject {
 
 export type OutputArray = [string[], string[], string[]];
 
-async function runProcess(filePath: string, options: ProgramOptions): Promise<ProgramResult> {
+async function runProcess(filePath: string, options: ExtendedProgramOptions): Promise<ProgramResult> {
     const start = performance.now();
     const timing: TimingObject = { start, end: -1 };
     return await new Promise((resolve) => {
         const output: OutputArray = [[], [], []]; // stdout, stderr, error
-        const program = spawn('node', [filePath, ...toArgs(options)], {
+        const program = spawn('node', [filePath, ...toArgs({ ...options, index: undefined } as ProgramOptions)], {
             cwd: path.dirname(filePath),
             stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
         });
@@ -492,7 +551,7 @@ async function runProcess(filePath: string, options: ProgramOptions): Promise<Pr
                     process.stdin.setEncoding('utf8');
                     process.stdin.on('data', function (data: Buffer | string) {
                         if (data.toString().startsWith('c')) {
-                            program.kill('SIGINT'); // used signal(but not triggerable by Ctrl+C), to indicate the right thing!
+                            program.kill('SIGINT'); // used signal(but not manually by Ctrl+C), to indicate the right thing!
                             process.stdin.pause();
                             output[2].push('Cancelled by User\n');
                             if (program.connected) {
@@ -531,6 +590,8 @@ function UserCancel() {
     });
 }
 
-async () => {
+void (async (): Promise<never> => {
+    initPrototypes();
     await main();
-};
+    process.exit(0);
+})();

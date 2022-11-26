@@ -3,15 +3,23 @@ import { CountFunction, PossibleFillTypes, PrintNestedMapFunction } from './util
 export {};
 declare global {
     interface Array<T> {
-        equals(this: Array<T>, array: Array<T>): boolean;
+        equals(array: Array<T>): boolean;
         includesArray(this: Array<Array<T>>, array: Array<T>): boolean;
         printNested(this: Array<T> | Array<Array<T>>, mapFunction?: PrintNestedMapFunction<T>): boolean;
-        copy(this: Array<T>): Array<T>;
-        isArray(this: Array<T>): true;
-        count(this: Array<T>, countFunction?: CountFunction<T>, startValue?: number): number;
-        combine(this: Array<T>, second: Array<T>, flat?: boolean): Array<T>;
-        fillElements(this: PossibleFillTypes, start?: number, end?: number): Array<number>;
-        print(this: Array<T>): false | void;
+        copy(): Array<T>;
+        isArray(): true;
+        count(countFunction?: CountFunction<T>, startValue?: number): number;
+        combine(second: Array<T>, flat?: boolean): Array<T>;
+        fillElements(
+            this: PossibleFillTypes | T[],
+            start?: number,
+            end?: number
+        ): this extends PossibleFillTypes ? Array<number> : [];
+        print(): false | void;
         atSafe(index: number): T;
+    }
+
+    interface Object {
+        isArray(): boolean;
     }
 }
