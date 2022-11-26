@@ -4,8 +4,8 @@ export {};
 declare global {
     interface Array<T> {
         equals(array: Array<T>): boolean;
-        includesArray(this: Array<Array<T>>, array: Array<T>): boolean;
-        printNested(this: Array<T> | Array<Array<T>>, mapFunction?: PrintNestedMapFunction<T>): boolean;
+        includesArray<U = T>(this: Array<Array<U>>, array: Array<U>): boolean;
+        printNested<U = T>(this: Array<U> | Array<Array<U>>, mapFunction?: PrintNestedMapFunction<U>): boolean;
         copy(): Array<T>;
         isArray(): true;
         count(countFunction?: CountFunction<T>, startValue?: number): number;
@@ -17,6 +17,10 @@ declare global {
         ): this extends PossibleFillTypes ? Array<number> : [];
         print(): false | void;
         atSafe(index: number): T;
+        indexOfNested<U = T>(this: Array<Array<U>>, element: Array<U>): number;
+        times(this: Array<number>, factor: number): Array<number>;
+        add(this: Array<number>, number: number): Array<number>;
+        add(this: Array<number>, number: Array<number>): Array<number>;
     }
 
     interface Object {

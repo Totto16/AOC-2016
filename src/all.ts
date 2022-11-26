@@ -529,6 +529,9 @@ async function runProcess(filePath: string, options: ExtendedProgramOptions): Pr
 
         program.stdout?.on('data', function (data: string | Buffer) {
             output[0].push(data.toString());
+            if (options.debug) {
+                console.log(data.toString());
+            }
         });
 
         program.stderr?.on('data', function (data: string | Buffer) {

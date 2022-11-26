@@ -3,7 +3,7 @@ import fs from 'fs';
 import { parseArgs, ProgramOptions } from './all';
 const debug = ['1', 'true', 'on', 'enabled', 'enable'].includes(process.env['DEBUG'] ?? '0');
 
-function logDebug(...args: unknown[]) {
+export function logDebug(...args: unknown[]) {
     if (debug) {
         console.log(`[DEBUG] `, ...args);
         return true;
@@ -214,14 +214,53 @@ export function initPrototypes(): void {
         value<T = unknown>(this: T[], index: number): T {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: Array<T> = this;
-            if (index < 0 || index >= first.length) {
-                throw new Error(`Array.atSafe: Index out of range: 0 < ${index} >= ${first.length}`);
+            if (index < -first.length || index >= first.length) {
+                throw new Error(`Array.atSafe: Index out of range: ${-first.length} > ${index} >= ${first.length}`);
             }
             const result = first.at(index);
             if (result === undefined) {
                 throw new Error(`Array.atSafe: Fatal error, Array.at() returned undefined`);
             }
             return result;
+        },
+    });
+
+    Object.defineProperty(Array.prototype, 'indexOfNested', {
+        value<T = unknown>(this: Array<Array<T>>, element: Array<T>): number {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: Array<Array<T>> = this;
+
+            for (let index = 0; index < first.length; ++index) {
+                if (first.atSafe(index).equals(element)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        },
+    });
+
+    Object.defineProperty(Array.prototype, 'times', {
+        value(this: number[], factor: number): number[] {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: number[] = this;
+            return first.map((a) => a * factor);
+        },
+    });
+
+    Object.defineProperty(Array.prototype, 'add', {
+        value(this: number[], arg: number | number[]): number[] {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: number[] = this;
+            if (!Array.isArray(arg)) {
+                return first.map((a) => a + arg);
+            } else {
+                const res: number[] = [];
+                for (let i = 0; i < Math.max(first.length, arg.length); ++i) {
+                    res.push((first.at(i) ?? 0) + (arg.at(i) ?? 0));
+                }
+                return res;
+            }
         },
     });
 }
