@@ -22,7 +22,7 @@ declare global {
         add(
             this: Array<number>,
             number: number | Array<number>,
-            constraintFunction?: (nr: number) => number
+            constraintFunction?: (nr: number, index: number) => number
         ): Array<number>;
     }
 

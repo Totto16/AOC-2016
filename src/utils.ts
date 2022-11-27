@@ -249,15 +249,19 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(Array.prototype, 'add', {
-        value(this: number[], arg: number | number[], constraintFunction: (nr: number) => number = (a) => a): number[] {
+        value(
+            this: number[],
+            arg: number | number[],
+            constraintFunction: (nr: number, index: number) => number = (a) => a
+        ): number[] {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: number[] = this;
             if (!Array.isArray(arg)) {
-                return first.map((a) => a + arg);
+                return first.map((a, index) => constraintFunction(a + arg, index));
             } else {
                 const res: number[] = [];
                 for (let i = 0; i < Math.max(first.length, arg.length); ++i) {
-                    res.push(constraintFunction((first.at(i) ?? 0) + (arg.at(i) ?? 0)));
+                    res.push(constraintFunction((first.at(i) ?? 0) + (arg.at(i) ?? 0), i));
                 }
                 return res;
             }
