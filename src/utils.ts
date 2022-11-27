@@ -211,17 +211,17 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(Array.prototype, 'atSafe', {
-        value<T = unknown>(this: T[], index: number): T {
+        value<T = unknown>(this: T[], index: number): Exclude<T, undefined> {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: Array<T> = this;
             if (index < -first.length || index >= first.length) {
                 throw new Error(`Array.atSafe: Index out of range: ${-first.length} > ${index} >= ${first.length}`);
             }
-            const result = first.at(index);
+            const result: T | undefined = first.at(index);
             if (result === undefined) {
                 throw new Error(`Array.atSafe: Fatal error, Array.at() returned undefined`);
             }
-            return result;
+            return result as Exclude<T, undefined>;
         },
     });
 

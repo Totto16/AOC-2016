@@ -11,7 +11,7 @@ const mappings: { [key in Direction]: [number, number] } = {
     R: [1, 0],
 };
 
-function indexAt<T = number>(array: T[][], index: Position): T {
+function indexAt<T = number>(array: T[][], index: Position): Exclude<T, undefined> {
     return array.atSafe(index[1]).atSafe(index[0]);
 }
 

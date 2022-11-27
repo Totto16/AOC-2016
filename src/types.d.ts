@@ -16,7 +16,7 @@ declare global {
             end?: number
         ): this extends PossibleFillTypes ? Array<number> : [];
         print(): false | void;
-        atSafe(index: number): T;
+        atSafe(index: number): Exclude<T, undefined>;
         indexOfNested<U = T>(this: Array<Array<U>>, element: Array<U>): number;
         times(this: Array<number>, factor: number): Array<number>;
         add(
