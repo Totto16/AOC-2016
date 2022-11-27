@@ -452,7 +452,7 @@ function formatTime(input: number): string {
         const ms = Math.round(input % 1000);
         return `^r${s}.${ms} s`;
     } else {
-        throw new Error('Error in formatTime');
+        return `^r${new Intl.DateTimeFormat('de-DE', { timeStyle: 'medium' }).format(input)}`;
     }
 }
 

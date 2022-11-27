@@ -37,16 +37,17 @@ declare global {
     interface String {
         atSafe(this: String, index: number): string;
         count(this: String, char: StringOfLength<1, 1>): number;
-        toStringOfLength<Min extends number, Max extends number>(
+        toStringOfLength<Min extends number, Max extends number = Min>(
             this: String,
             min: Min,
-            max: Max
+            max?: Max
         ): StringOfLength<Min, Max>;
-        isStringOfLength<Min extends number, Max extends number>(
+        isStringOfLength<Min extends number, Max extends number = Min>(
             this: String,
             min: Min,
-            max: Max
+            max?: Max
         ): this is StringOfLength<Min, Max>;
-        toCharCode(this: StringOfLength<1, 1>): number;
+        toCharCode(this: string): number;
+        replaceAt(this: string, index: number, replaceWith: string): string;
     }
 }

@@ -24,7 +24,7 @@ function parseRooms(input: string[]) {
         const rawChars = allNames.replaceAll('-', '');
         const charCount: CharCount[] = [];
         for (const char of rawChars) {
-            const count = rawChars.count(char.toStringOfLength<1, 1>(1, 1));
+            const count = rawChars.count(char.toStringOfLength<1>(1));
             if (charCount.indexOfNested([char, count]) === -1) {
                 charCount.push([char, count]);
             }
@@ -57,12 +57,12 @@ function solve(input: string[]): number {
 
 function shiftCypher(toShift: string, amount: number): string {
     const shiftAmount = amount % 26;
-    const aChar = 'a'.toStringOfLength<1, 1>(1, 1).toCharCode();
-    const zChar = 'z'.toStringOfLength<1, 1>(1, 1).toCharCode();
+    const aChar = 'a'.toCharCode();
+    const zChar = 'z'.toCharCode();
     return toShift
         .split('')
         .map((a) => {
-            const char = a.toStringOfLength<1, 1>(1, 1).toCharCode();
+            const char = a.toCharCode();
             if (char >= aChar && char <= zChar) {
                 let result = (char + shiftAmount) % (zChar + 1);
                 if (result < aChar) {

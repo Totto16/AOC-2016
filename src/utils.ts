@@ -293,7 +293,7 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(String.prototype, 'count', {
-        value(this: string, char: StringOfLength<1, 1>): number {
+        value(this: string, char: string): number {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: string = this;
             if (char.length !== 1) {
@@ -310,12 +310,16 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(String.prototype, 'toStringOfLength', {
-        value<Min extends number, Max extends number>(this: string, min: Min, max: Max): StringOfLength<Min, Max> {
+        value<Min extends number, Max extends number = Min>(
+            this: string,
+            min: Min,
+            max?: Max
+        ): StringOfLength<Min, Max> {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: string = this;
 
-            if (!first.isStringOfLength(min, max)) {
-                throw new Error(`String.toStringOfLength: string is not between ${min} and ${max}`);
+            if (!first.isStringOfLength(min, max ?? min)) {
+                throw new Error(`String.toStringOfLength: string is not between ${min} and ${max ?? min}`);
             }
 
             return first;
@@ -323,10 +327,10 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(String.prototype, 'isStringOfLength', {
-        value<Min extends number, Max extends number>(this: string, min: Min, max: Max): boolean {
+        value<Min extends number, Max extends number = Min>(this: string, min: Min, max?: Max): boolean {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: string = this;
-            return first.length >= min && first.length <= max;
+            return first.length >= min && first.length <= (max ?? min);
         },
     });
 
@@ -335,6 +339,20 @@ export function initPrototypes(): void {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
             const first: StringOfLength<1, 1> = this;
             return first.charCodeAt(0);
+        },
+    });
+
+    Object.defineProperty(String.prototype, 'replaceAt', {
+        value(this: string, index: number, replaceWith: string): string {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: string = this;
+            const result = first.substring(0, index) + replaceWith + first.substring(index + replaceWith.length);
+            if (index >= first.length || index < 0 || isNaN(index)) {
+                throw new Error(
+                    `String.replaceAt: can't pass an index, that isn't a valid index into the string, but passed ${index} to a string of length ${first.length}`
+                );
+            }
+            return result;
         },
     });
 }
