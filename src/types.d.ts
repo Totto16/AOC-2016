@@ -1,4 +1,4 @@
-import { CountFunction, PossibleFillTypes, PrintNestedMapFunction } from './utils';
+import { CountFunction, PossibleFillTypes, PrintNestedMapFunction, StringOfLength } from './utils';
 
 export {};
 declare global {
@@ -32,5 +32,21 @@ declare global {
 
     interface Number {
         clamp(this: Number, min: Number, max: Number, endInclusive?: boolean): Number;
+    }
+
+    interface String {
+        atSafe(this: String, index: number): string;
+        count(this: String, char: StringOfLength<1, 1>): number;
+        toStringOfLength<Min extends number, Max extends number>(
+            this: String,
+            min: Min,
+            max: Max
+        ): StringOfLength<Min, Max>;
+        isStringOfLength<Min extends number, Max extends number>(
+            this: String,
+            min: Min,
+            max: Max
+        ): this is StringOfLength<Min, Max>;
+        toCharCode(this: StringOfLength<1, 1>): number;
     }
 }

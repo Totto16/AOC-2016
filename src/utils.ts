@@ -276,7 +276,73 @@ export function initPrototypes(): void {
             return result;
         },
     });
+
+    Object.defineProperty(String.prototype, 'atSafe', {
+        value(this: string, index: number): string {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: string = this;
+            if (index < -first.length || index >= first.length) {
+                throw new Error(`Array.atSafe: Index out of range: ${-first.length} > ${index} >= ${first.length}`);
+            }
+            const result: string | undefined = first.at(index);
+            if (result === undefined) {
+                throw new Error(`Array.atSafe: Fatal error, Array.at() returned undefined`);
+            }
+            return result;
+        },
+    });
+
+    Object.defineProperty(String.prototype, 'count', {
+        value(this: string, char: StringOfLength<1, 1>): number {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: string = this;
+            if (char.length !== 1) {
+                throw new Error(`String.count() can only count chars, not strings: input was: '${char}'`);
+            }
+            let result = 0;
+            for (let i = 0; i < first.length; ++i) {
+                if (first.atSafe(i) === char) {
+                    ++result;
+                }
+            }
+            return result;
+        },
+    });
+
+    Object.defineProperty(String.prototype, 'toStringOfLength', {
+        value<Min extends number, Max extends number>(this: string, min: Min, max: Max): StringOfLength<Min, Max> {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: string = this;
+
+            if (!first.isStringOfLength(min, max)) {
+                throw new Error(`String.toStringOfLength: string is not between ${min} and ${max}`);
+            }
+
+            return first;
+        },
+    });
+
+    Object.defineProperty(String.prototype, 'isStringOfLength', {
+        value<Min extends number, Max extends number>(this: string, min: Min, max: Max): boolean {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: string = this;
+            return first.length >= min && first.length <= max;
+        },
+    });
+
+    Object.defineProperty(String.prototype, 'toCharCode', {
+        value(this: StringOfLength<1, 1>): number {
+            // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
+            const first: StringOfLength<1, 1> = this;
+            return first.charCodeAt(0);
+        },
+    });
 }
+
+export type StringOfLength<Min, Max> = string & {
+    readonly StringOfLength: unique symbol; // this is the phantom type
+};
+
 export type WarningType = 0 | 1 | 2;
 
 function slowWarning(type: WarningType) {
