@@ -131,18 +131,26 @@ export function initPrototypes(): void {
     });
 
     Object.defineProperty(Array.prototype, 'count', {
-        value<T = unknown>(this: T[], countFunction: CountFunction<T> = (a: T): number => a as number, startValue = 0) {
+        value<T = unknown>(
+            this: T[] | T[][],
+            countFunction: CountFunction<T> = (a: T): number => a as number,
+            startValue = 0
+        ) {
             // eslint-disable-next-line this/no-this, @typescript-eslint/no-this-alias
-            const array: T[] = this;
-            const reduceFunction: (acc: number, el: T) => number = (acc: number, el: T): number => {
+            const array: T[] | T[][] = this;
+            const reduceFunction: (acc: number, el: T | T[]) => number = (acc: number, el: T | T[]): number => {
                 if (!Array.isArray(el)) {
                     return acc + countFunction(el);
                 }
-                return acc + (el as T[]).reduce(reduceFunction, startValue);
+                return acc + el.reduce(reduceFunction, startValue);
             };
 
-            const result: number = array.reduce(reduceFunction, startValue);
-            return result;
+            // typescript can't deduce, that the reduce is valid in both cases, if array is T[] or T[][]
+            if (Array.isArray(array[0])) {
+                return (array as T[][]).reduce<number>(reduceFunction, startValue);
+            } else {
+                return (array as T[]).reduce<number>(reduceFunction, startValue);
+            }
         },
     });
 

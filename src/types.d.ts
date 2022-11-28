@@ -8,7 +8,7 @@ declare global {
         printNested<U = T>(this: Array<U> | Array<Array<U>>, mapFunction?: PrintNestedMapFunction<U>): boolean;
         copy(): Array<T>;
         isArray(): true;
-        count(countFunction?: CountFunction<T>, startValue?: number): number;
+        count<U = T>(this: Array<U> | Array<Array<U>>, countFunction?: CountFunction<U>, startValue?: number): number;
         combine(second: Array<T>, flat?: boolean): Array<T>;
         fillElements(
             this: PossibleFillTypes | T[],
