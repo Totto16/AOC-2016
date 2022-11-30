@@ -38,6 +38,6 @@ node . [options]
 
 To see them all you can run the help command.
 
-<!--- todo>
+
 <!--- advent_readme_stars table --->
 
